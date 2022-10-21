@@ -1,0 +1,113 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: WooCommerce Jimizz Gateway\n"
+"POT-Creation-Date: 2022-10-21 16:57+0200\n"
+"PO-Revision-Date: 2022-10-21 16:57+0200\n"
+"Last-Translator: \n"
+"Language-Team: fr_FR\n"
+"Language: fr_FR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Generator: Poedit 3.0.1\n"
+"X-Poedit-Basepath: ..\n"
+"X-Poedit-Flags-xgettext: --add-comments=translators:\n"
+"X-Poedit-WPHeader: woocommerce-gateway-jimizz.php\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"X-Poedit-KeywordsList: __;_e;_n:1,2;_x:1,2c;_ex:1,2c;_nx:4c,1,2;esc_attr__;"
+"esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c;_n_noop:1,2;"
+"_nx_noop:3c,1,2;__ngettext_noop:1,2\n"
+"X-Poedit-SearchPath-0: .\n"
+"X-Poedit-SearchPathExcluded-0: *.min.js\n"
+
+#: woocommerce-gateway-jimizz.php:111
+msgid "Enable/Disable"
+msgstr "Actif/Inactif"
+
+#: woocommerce-gateway-jimizz.php:112
+msgid "Enable Jimizz Gateway"
+msgstr "Activer le paiement par Jimizz"
+
+#: woocommerce-gateway-jimizz.php:118
+msgid "Title"
+msgstr "Titre"
+
+#: woocommerce-gateway-jimizz.php:119
+msgid "This controls the title which the user sees during checkout."
+msgstr "Titre visible par le client lors d'une commande."
+
+#: woocommerce-gateway-jimizz.php:121
+msgid "Jimizz"
+msgstr "Jimizz"
+
+#: woocommerce-gateway-jimizz.php:125
+msgid "Description"
+msgstr "Description"
+
+#: woocommerce-gateway-jimizz.php:127
+msgid "Payment method description that the customer will see on your checkout."
+msgstr "Description visible par le client lors d'une commande."
+
+#: woocommerce-gateway-jimizz.php:128
+msgid "Pay with Jimizz Cryptocurrency"
+msgstr "Payer avec la crypto-monnaie Jimizz"
+
+#: woocommerce-gateway-jimizz.php:132
+msgid "Mode"
+msgstr "Mode"
+
+#: woocommerce-gateway-jimizz.php:133
+msgid "Place the Jimizz gateway in test mode using test private key."
+msgstr ""
+"Permet de placer la Gateway Jimizz en mode TEST en utilisant la clé privée "
+"de test."
+
+#: woocommerce-gateway-jimizz.php:136
+msgid "Production"
+msgstr "Production"
+
+#: woocommerce-gateway-jimizz.php:137
+msgid "Test APPROVED"
+msgstr "Test APPROUVÉ"
+
+#: woocommerce-gateway-jimizz.php:138
+msgid "Test REJECTED"
+msgstr "Test REJETÉ"
+
+#: woocommerce-gateway-jimizz.php:144
+msgid "Merchant ID"
+msgstr "ID de marchand"
+
+#: woocommerce-gateway-jimizz.php:149
+msgid "Test Private Key"
+msgstr "Clé privée de Test"
+
+#: woocommerce-gateway-jimizz.php:154
+msgid "Production Private Key"
+msgstr "Clé privée de Production"
+
+#: woocommerce-gateway-jimizz.php:184
+msgid "Order placed and user redirected to Jimizz Gateway."
+msgstr "Commande placée et utilisateur redirigé vers la Gateway Jimizz."
+
+#: woocommerce-gateway-jimizz.php:208
+msgid "Redirecting to payment provider."
+msgstr "Redirection vers la plateforme de paiement Jimizz."
+
+#: woocommerce-gateway-jimizz.php:229
+msgid "Jimizz Gateway accepted payment."
+msgstr "La Gateway Jimizz a accepté le paiement."
+
+#: woocommerce-gateway-jimizz.php:230
+#, php-format
+msgid "Transaction Hash: %s."
+msgstr "Hash de transaction : %s."
+
+#: woocommerce-gateway-jimizz.php:239
+msgid "Jimizz Gateway declined payment."
+msgstr "La Gateway Jimizz a refusé le paiement."
+
+#: woocommerce-gateway-jimizz.php:248
+msgid "Jimizz Gateway notification error - Check logs."
+msgstr "Notification Jimizz Gateway en erreur - Vérifiez vos logs."
