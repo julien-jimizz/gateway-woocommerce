@@ -5,7 +5,7 @@
  * Description: Jimizz Payment Gateway Woocommerce Integration
  * Author: Jimizz Team
  * Author URI: https://www.jimizz.com/
- * Version: 1.0.0
+ * Version: 1.0.1
  * Text Domain: wc-gateway-jimizz
  *
  * Copyright: (c) 2022 Jimizz
@@ -28,11 +28,37 @@ if (!in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get
 }
 
 (function () {
-  define('JIMIZZ_DOMAIN_TEXT', 'woocommerce-jimizz');
+  define('WC_JIMIZZ_GATEWAY_VERSION', '1.0.1');
+  define('WC_JIMIZZ_GATEWAY_DOMAIN_TEXT', 'woocommerce-jimizz');
 
   $autoload_filepath = __DIR__ . '/vendor/autoload.php';
   if (file_exists($autoload_filepath)) {
     require $autoload_filepath;
+  }
+
+  register_activation_hook(__FILE__, 'jimizz_gateway_installation');
+  function jimizz_gateway_installation()
+  {
+    global $wpdb;
+    $installed_version = get_option('WC_JIMIZZ_GATEWAY_VERSION');
+    if ($installed_version !== WC_JIMIZZ_GATEWAY_VERSION) {
+      require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+      $sql = <<<EOF
+        CREATE TABLE IF NOT EXISTS `{$wpdb->prefix}wc_jimizz_transaction`
+        (
+          `id_jimizz_transaction` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+          `id_order` INT(11) UNSIGNED NOT NULL,
+          `amount` FLOAT(12, 2) NOT NULL,
+          `mode` ENUM ('production', 'testApproved', 'testRejected') NOT NULL,
+          `status` ENUM ('pending', 'cancelled', 'failed', 'succeed') NOT NULL,
+          `tx_hash` VARCHAR(255) NOT NULL,
+          PRIMARY KEY (`id_jimizz_transaction`) USING BTREE,
+          INDEX `id_order` (`id_order`) USING BTREE
+        );
+EOF;
+      dbDelta($sql);
+      update_option('WC_JIMIZZ_GATEWAY_VERSION', WC_JIMIZZ_GATEWAY_VERSION);
+    }
   }
 
   /**
@@ -52,7 +78,7 @@ if (!in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get
   function jimizz_init_gateway_class()
   {
     load_plugin_textdomain(
-      JIMIZZ_DOMAIN_TEXT,
+      WC_JIMIZZ_GATEWAY_DOMAIN_TEXT,
       false,
       dirname(plugin_basename(__FILE__)) . '/lang/'
     );
@@ -98,6 +124,7 @@ if (!in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get
         add_action('woocommerce_receipt_' . $this->id, [$this, 'receipt_page']);
 
         add_action('woocommerce_api_' . $this->id . '_s2s', [$this, 's2s']);
+        add_action('woocommerce_api_' . $this->id . '_return', [$this, 'return']);
       }
 
       /**
@@ -108,50 +135,50 @@ if (!in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get
       {
         $this->form_fields = apply_filters('wc_jimizz_form_fields', [
           'enabled' => [
-            'title' => __('Enable/Disable', JIMIZZ_DOMAIN_TEXT),
-            'label' => __('Enable Jimizz Gateway', JIMIZZ_DOMAIN_TEXT),
+            'title' => __('Enable/Disable', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT),
+            'label' => __('Enable Jimizz Gateway', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT),
             'type' => 'checkbox',
             'default' => 'yes'
           ],
 
           'title' => [
-            'title' => __('Title', JIMIZZ_DOMAIN_TEXT),
-            'description' => __('This controls the title which the user sees during checkout.', JIMIZZ_DOMAIN_TEXT),
+            'title' => __('Title', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT),
+            'description' => __('This controls the title which the user sees during checkout.', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT),
             'type' => 'text',
-            'default' => __('Jimizz', JIMIZZ_DOMAIN_TEXT),
+            'default' => __('Jimizz', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT),
           ],
 
           'description' => [
-            'title' => __('Description', JIMIZZ_DOMAIN_TEXT),
+            'title' => __('Description', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT),
             'type' => 'textarea',
-            'description' => __('Payment method description that the customer will see on your checkout.', JIMIZZ_DOMAIN_TEXT),
-            'default' => __('Pay with Jimizz Cryptocurrency', JIMIZZ_DOMAIN_TEXT),
+            'description' => __('Payment method description that the customer will see on your checkout.', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT),
+            'default' => __('Pay with Jimizz Cryptocurrency', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT),
           ],
 
           'mode' => [
-            'title' => __('Mode', JIMIZZ_DOMAIN_TEXT),
-            'description' => __('Place the Jimizz gateway in test mode using test private key.', JIMIZZ_DOMAIN_TEXT),
+            'title' => __('Mode', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT),
+            'description' => __('Place the Jimizz gateway in test mode using test private key.', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT),
             'type' => 'select',
             'options' => [
-              TransactionType::PRODUCTION => __('Production', JIMIZZ_DOMAIN_TEXT),
-              TransactionType::TEST_APPROVED => __('Test APPROVED', JIMIZZ_DOMAIN_TEXT),
-              TransactionType::TEST_REJECTED => __('Test REJECTED', JIMIZZ_DOMAIN_TEXT),
+              TransactionType::PRODUCTION => __('Production', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT),
+              TransactionType::TEST_APPROVED => __('Test APPROVED', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT),
+              TransactionType::TEST_REJECTED => __('Test REJECTED', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT),
             ],
             'default' => 'no',
           ],
 
           'merchant_id' => [
-            'title' => __('Merchant ID', JIMIZZ_DOMAIN_TEXT),
+            'title' => __('Merchant ID', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT),
             'type' => 'text',
           ],
 
           'test_private_key' => [
-            'title' => __('Test Private Key', JIMIZZ_DOMAIN_TEXT),
+            'title' => __('Test Private Key', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT),
             'type' => 'password',
           ],
 
           'private_key' => [
-            'title' => __('Production Private Key', JIMIZZ_DOMAIN_TEXT),
+            'title' => __('Production Private Key', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT),
             'type' => 'password'
           ]
         ]);
@@ -179,73 +206,152 @@ if (!in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get
        */
       public function receipt_page($order_id)
       {
+        global $wpdb;
+
         $order = wc_get_order($order_id);
+        $order->add_order_note(__('Order placed and user redirected to Jimizz Gateway.', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT));
 
-        $order->add_order_note(__('Order placed and user redirected to Jimizz Gateway.', JIMIZZ_DOMAIN_TEXT));
+        // Create WooCommerce JimizzTransaction
+        $wpdb->insert($wpdb->prefix . 'wc_jimizz_transaction', [
+          'id_order' => $order->get_id(),
+          'amount' => $order->get_total(),
+          'status' => 'pending',
+          'mode' => $this->mode
+        ]);
+        $transactionId = $wpdb->insert_id;
 
-        $gateway = new Gateway($this->merchant_id);
+        $return = function ($action) use ($transactionId) {
+          return add_query_arg([
+            'wc-api' => 'jimizz_return',
+            'tx' => $transactionId,
+            'action' => $action
+          ], home_url('/'));
+        };
 
         $fields = [
-          'transactionId' => $order->get_id(),
+          'transactionId' => 'WC_' . $transactionId,
           'amount' => $order->get_total() * 100,
           'currency' => Currency::EUR,
-          'successUrl' => $this->get_return_url($order),
-          'errorUrl' => $order->get_checkout_payment_url(),
-          'callbackUrl' => add_query_arg([
-            'wc-api' => 'jimizz_s2s',
-            'id' => $order->get_id()
-          ], home_url('/')),
-          'cancelUrl' => $order->get_checkout_payment_url(),
+          'successUrl' => $return('success'),
+          'errorUrl' => $return('error'),
+          'cancelUrl' => $return('cancel'),
+          'callbackUrl' => add_query_arg(['wc-api' => 'jimizz_s2s'], home_url('/')),
           'merchantName' => get_bloginfo('name'),
           'merchantUrl' => preg_replace('~^https?://~i', '', get_bloginfo('url')),
         ];
-        $transaction = $gateway->transaction($this->mode, $fields);
 
+        // Init Gateway transaction
+        $gateway = new Gateway($this->merchant_id);
+        $transaction = $gateway->transaction($this->mode, $fields);
         $transaction->sign($this->private_key);
 
         // Display redirecting message and render form
+        echo '<p>' . __('Redirecting to payment provider.', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT) . '</p>';
         $form_id = 'jimizz-gateway-form';
-        echo '<p>' . __('Redirecting to payment provider.', JIMIZZ_DOMAIN_TEXT) . '</p>';
         $transaction->render($form_id);
 
-        // Validate form
+        // Submit form
         wc_enqueue_js('document.getElementById("' . $form_id . '").submit();');
       }
 
       /**
+       * Return from Jimizz Gateway
+       * @return void
+       */
+      public function return()
+      {
+        global $wpdb;
+
+        $action = filter_input(INPUT_GET, 'action', FILTER_UNSAFE_RAW);
+        $tx = filter_input(INPUT_GET, 'tx', FILTER_UNSAFE_RAW);
+
+        // Retrieve transaction
+        $sql = 'SELECT * FROM ' . $wpdb->prefix . 'wc_jimizz_transaction where id_jimizz_transaction = %d';
+        $stmt = $wpdb->prepare($sql, $tx);
+        $jimizzTx = $wpdb->get_row($stmt);
+
+        if ($jimizzTx) {
+          if ($jimizzTx->status === 'pending') {
+            // Update status
+            $status = $action === 'cancel' ? 'cancelled' : ($action === 'success' ? 'succeed' : 'failed');
+            $wpdb->update(
+              $wpdb->prefix . 'wc_jimizz_transaction',
+              ['status' => $status],
+              ['id_jimizz_transaction' => $tx],
+              ['%s'],
+              ['%d'],
+            );
+          }
+
+          // Retrieve order
+          $order = wc_get_order($jimizzTx->id_order);
+
+          if ($action === 'success') {
+            wp_redirect($this->get_return_url($order));
+          } else {
+            wp_redirect($order->get_checkout_payment_url());
+          }
+        } else {
+          wp_redirect('/');
+        }
+      }
+
+      /**
        * Server-to-server callback notification
+       * @return void
        */
       public function s2s()
       {
+        global $wpdb;
+
         $data = json_decode(file_get_contents('php://input'));
 
         try {
           header($_SERVER['SERVER_PROTOCOL'] . ' 200 OK', true, 200);
-          $order = wc_get_order($_GET['id']);
+
+          // Retrieve transaction
+          $sql = 'SELECT * FROM ' . $wpdb->prefix . 'wc_jimizz_transaction where id_jimizz_transaction = %d';
+          $stmt = $wpdb->prepare($sql, str_replace('WC_', '', $data->transactionId));
+          $jimizzTx = $wpdb->get_row($stmt);
+
+          // Retrieve order
+          $order = wc_get_order($jimizzTx->id_order);
 
           $gateway = new Gateway('MERCHANT_ID');
           if ($gateway->verifyCallback($data)) {
             // Payment succeed - validate order
-            $order->add_order_note(__('Jimizz Gateway accepted payment.', JIMIZZ_DOMAIN_TEXT));
-            $order->add_order_note(sprintf(__('Transaction Hash: %s.', JIMIZZ_DOMAIN_TEXT), $data->hash));
+            $order->add_order_note(__('Jimizz Gateway accepted payment.', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT));
+            $order->add_order_note(sprintf(__('Transaction Hash: %s.', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT), $data->hash));
             $order->payment_complete($data->hash ?? '');
             update_option('webhook_debug', $data);
 
-            echo $this->get_return_url($order);
+            // Update status
+            $wpdb->update(
+              $wpdb->prefix . 'wc_jimizz_transaction',
+              ['status' => 'succeed'],
+              ['id_jimizz_transaction' => $jimizzTx->id_jimizz_transaction],
+              ['%s'],
+              ['%d'],
+            );
           } else {
-            // Payment failed - cancel order
-            $order->update_status(
-              'cancelled',
-              __('Jimizz Gateway declined payment.', JIMIZZ_DOMAIN_TEXT)
+            // Payment failed - Update status
+            $wpdb->update(
+              $wpdb->prefix . 'wc_jimizz_transaction',
+              ['status' => 'failed'],
+              ['id_jimizz_transaction' => $jimizzTx->id_jimizz_transaction],
+              ['%s'],
+              ['%d'],
             );
           }
+
+          echo $this->get_return_url($order);
         } catch (Exception $e) {
           header($_SERVER['SERVER_PROTOCOL'] . ' 500 Internal Server Error', true, 500);
           error_log($e);
 
           $order = wc_get_order($_GET['id']);
           if ($order) {
-            $order->add_order_note(__('Jimizz Gateway notification error - Check logs.', JIMIZZ_DOMAIN_TEXT));
+            $order->add_order_note(__('Jimizz Gateway notification error - Check logs.', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT));
           }
         }
       }
