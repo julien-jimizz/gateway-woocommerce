@@ -5,7 +5,7 @@
  * Description: Jimizz Payment Gateway Woocommerce Integration
  * Author: Jimizz Team
  * Author URI: https://www.jimizz.com/
- * Version: 1.0.1
+ * Version: 1.0.2
  * Text Domain: wc-gateway-jimizz
  *
  * Copyright: (c) 2022 Jimizz
@@ -28,7 +28,7 @@ if (!in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get
 }
 
 (function () {
-  define('WC_JIMIZZ_GATEWAY_VERSION', '1.0.1');
+  define('WC_JIMIZZ_GATEWAY_VERSION', '1.0.2');
   define('WC_JIMIZZ_GATEWAY_DOMAIN_TEXT', 'woocommerce-jimizz');
 
   $autoload_filepath = __DIR__ . '/vendor/autoload.php';
@@ -302,59 +302,67 @@ EOF;
        */
       public function s2s()
       {
-        global $wpdb;
+	      global $wpdb;
 
-        $data = json_decode(file_get_contents('php://input'));
+	      $data = json_decode(file_get_contents('php://input'));
 
-        try {
-          header($_SERVER['SERVER_PROTOCOL'] . ' 200 OK', true, 200);
+	      try {
+		      $gateway = new Gateway($this->merchant_id);
+		      if (!$gateway->verifyCallback($data)) {
+			      $this->exit500();
+		      } else {
+			      // Retrieve transaction
+			      $sql = 'SELECT * FROM ' . $wpdb->prefix . 'wc_jimizz_transaction where id_jimizz_transaction = %d';
+			      $stmt = $wpdb->prepare($sql, str_replace('WC_DEV_', '', $data->transactionId));
+			      $jimizzTx = $wpdb->get_row($stmt);
 
-          // Retrieve transaction
-          $sql = 'SELECT * FROM ' . $wpdb->prefix . 'wc_jimizz_transaction where id_jimizz_transaction = %d';
-          $stmt = $wpdb->prepare($sql, str_replace('WC_', '', $data->transactionId));
-          $jimizzTx = $wpdb->get_row($stmt);
+			      // Retrieve order
+			      $order = wc_get_order($jimizzTx->id_order);
 
-          // Retrieve order
-          $order = wc_get_order($jimizzTx->id_order);
+			      if ($data->status === 'ACCEPTED') {
+				      // Payment succeed - validate order
+				      $order->add_order_note(__('Jimizz Gateway accepted payment.', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT));
+				      $order->add_order_note(sprintf(__('Transaction Hash: %s.', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT), $data->hash));
+				      $order->payment_complete($data->hash ?? '');
+				      update_option('webhook_debug', $data);
 
-          $gateway = new Gateway('MERCHANT_ID');
-          if ($gateway->verifyCallback($data)) {
-            // Payment succeed - validate order
-            $order->add_order_note(__('Jimizz Gateway accepted payment.', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT));
-            $order->add_order_note(sprintf(__('Transaction Hash: %s.', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT), $data->hash));
-            $order->payment_complete($data->hash ?? '');
-            update_option('webhook_debug', $data);
+				      // Update status
+				      $wpdb->update(
+					      $wpdb->prefix . 'wc_jimizz_transaction',
+					      ['status' => 'succeed'],
+					      ['id_jimizz_transaction' => $jimizzTx->id_jimizz_transaction],
+					      ['%s'],
+					      ['%d'],
+				      );
+			      } else {
+				      // Payment failed - Update status
+				      $wpdb->update(
+					      $wpdb->prefix . 'wc_jimizz_transaction',
+					      ['status' => 'failed'],
+					      ['id_jimizz_transaction' => $jimizzTx->id_jimizz_transaction],
+					      ['%s'],
+					      ['%d'],
+				      );
+			      }
+		      }
 
-            // Update status
-            $wpdb->update(
-              $wpdb->prefix . 'wc_jimizz_transaction',
-              ['status' => 'succeed'],
-              ['id_jimizz_transaction' => $jimizzTx->id_jimizz_transaction],
-              ['%s'],
-              ['%d'],
-            );
-          } else {
-            // Payment failed - Update status
-            $wpdb->update(
-              $wpdb->prefix . 'wc_jimizz_transaction',
-              ['status' => 'failed'],
-              ['id_jimizz_transaction' => $jimizzTx->id_jimizz_transaction],
-              ['%s'],
-              ['%d'],
-            );
-          }
+		      echo $this->get_return_url($order);
+	      } catch (Exception $e) {
+		      error_log($e);
 
-          echo $this->get_return_url($order);
-        } catch (Exception $e) {
-          header($_SERVER['SERVER_PROTOCOL'] . ' 500 Internal Server Error', true, 500);
-          error_log($e);
+		      $order = wc_get_order($_GET['id']);
+		      if ($order) {
+			      $order->add_order_note(__('Jimizz Gateway notification error - Check logs.', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT));
+		      }
 
-          $order = wc_get_order($_GET['id']);
-          if ($order) {
-            $order->add_order_note(__('Jimizz Gateway notification error - Check logs.', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT));
-          }
-        }
+		      $this->exit500();
+	      }
       }
+
+	    private function exit500() {
+		    header($_SERVER['SERVER_PROTOCOL'] . ' 500 Internal Server Error', true, 500);
+		    exit;
+	    }
     }
   }
 })();
