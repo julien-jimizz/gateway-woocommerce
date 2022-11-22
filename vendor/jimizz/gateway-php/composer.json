@@ -1,7 +1,7 @@
 {
   "name": "jimizz/gateway-php",
   "description": "Jimizz Gateway - PHP Integration kit",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "license": "MIT",
   "require": {
     "ext-gmp": "*",

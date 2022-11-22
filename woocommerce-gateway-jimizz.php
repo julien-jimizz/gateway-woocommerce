@@ -5,7 +5,7 @@
  * Description: Jimizz Payment Gateway Woocommerce Integration
  * Author: Jimizz Team
  * Author URI: https://www.jimizz.com/
- * Version: 1.0.2
+ * Version: 1.0.3
  * Text Domain: wc-gateway-jimizz
  *
  * Copyright: (c) 2022 Jimizz
@@ -28,7 +28,7 @@ if (!in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get
 }
 
 (function () {
-  define('WC_JIMIZZ_GATEWAY_VERSION', '1.0.2');
+  define('WC_JIMIZZ_GATEWAY_VERSION', '1.0.3');
   define('WC_JIMIZZ_GATEWAY_DOMAIN_TEXT', 'woocommerce-jimizz');
 
   $autoload_filepath = __DIR__ . '/vendor/autoload.php';

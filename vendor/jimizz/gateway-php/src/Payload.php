@@ -48,7 +48,8 @@ class Payload
       $hash = $this->_hash($flat);
 
       $ec = new EC('secp256k1');
-      return @$ec->verify($hash, $this->_fields['signature'], $public_key, 'hex');
+      $key = $ec->keyFromPublic($public_key, 'hex');
+      return $key->verify($hash, $this->_fields['signature']);
     } catch (Throwable $t) {
       return false;
     }

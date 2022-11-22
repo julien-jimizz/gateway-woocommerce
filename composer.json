@@ -1,7 +1,7 @@
 {
   "name": "jimizz/gateway-woocommerce",
   "description": "Jimizz Gateway - Woocommerce Integration plugin",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "license": "MIT",
   "require": {
     "jimizz/gateway-php": "^1.0"
