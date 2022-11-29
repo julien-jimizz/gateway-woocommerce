@@ -5,7 +5,7 @@
  * Description: Jimizz Payment Gateway Woocommerce Integration
  * Author: Jimizz Team
  * Author URI: https://www.jimizz.com/
- * Version: 1.0.3
+ * Version: 1.0.4
  * Text Domain: wc-gateway-jimizz
  *
  * Copyright: (c) 2022 Jimizz
@@ -28,7 +28,7 @@ if (!in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get
 }
 
 (function () {
-  define('WC_JIMIZZ_GATEWAY_VERSION', '1.0.3');
+  define('WC_JIMIZZ_GATEWAY_VERSION', '1.0.4');
   define('WC_JIMIZZ_GATEWAY_DOMAIN_TEXT', 'woocommerce-jimizz');
 
   $autoload_filepath = __DIR__ . '/vendor/autoload.php';
@@ -228,8 +228,9 @@ EOF;
           ], home_url('/'));
         };
 
+				$prefix = $this->mode === TransactionType::PRODUCTION ? 'WC_' : 'WC_TEST_';
         $fields = [
-          'transactionId' => 'WC_' . $transactionId,
+          'transactionId' => $prefix . $transactionId,
           'amount' => $order->get_total() * 100,
           'currency' => Currency::EUR,
           'successUrl' => $return('success'),
@@ -313,13 +314,13 @@ EOF;
 		      } else {
 			      // Retrieve transaction
 			      $sql = 'SELECT * FROM ' . $wpdb->prefix . 'wc_jimizz_transaction where id_jimizz_transaction = %d';
-			      $stmt = $wpdb->prepare($sql, str_replace('WC_DEV_', '', $data->transactionId));
+			      $stmt = $wpdb->prepare($sql, preg_replace('~WC_(?:DEV_|TEST_)?~', '', $data->transactionId));
 			      $jimizzTx = $wpdb->get_row($stmt);
 
 			      // Retrieve order
 			      $order = wc_get_order($jimizzTx->id_order);
 
-			      if ($data->status === 'ACCEPTED') {
+			      if ($data->status === 'APPROVED') {
 				      // Payment succeed - validate order
 				      $order->add_order_note(__('Jimizz Gateway accepted payment.', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT));
 				      $order->add_order_note(sprintf(__('Transaction Hash: %s.', WC_JIMIZZ_GATEWAY_DOMAIN_TEXT), $data->hash));
